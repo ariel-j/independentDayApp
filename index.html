@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>משחק שירי יום העצמאות</title>
     <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="container">
@@ -17,16 +18,22 @@
         <h1>משחק שירי יום העצמאות</h1>
         
         <div class="game-controls">
-            <button id="playSegment" class="game-button">נגן 2 שניות</button>
-            <button id="playNextSecond" class="game-button">נגן שנייה נוספת</button>
-            <button id="playFullSong" class="game-button">נגן את כל השיר</button>
-            <button id="nextSong" class="game-button">שיר הבא</button>
+            <button id="nextSong" class="game-button">שיר הבא ▶</button>
+            <button id="playSegment" class="game-button">נגן 2 שניות 🎵</button>
+            <button id="playNextSecond" class="game-button">נגן שנייה נוספת ⏩</button>
+            <button id="playFullSong" class="game-button">נגן את כל השיר 🎼</button>
         </div>
 
         <div class="song-info">
             <p id="currentSong" class="hidden"></p>
         </div>
+
+        <!-- Hidden YouTube player -->
+        <div id="player" style="display: none;"></div>
     </div>
+
+    <!-- Load YouTube IFrame API -->
+    <script src="https://www.youtube.com/iframe_api"></script>
     <script src="songs.js"></script>
     <script src="app.js"></script>
 </body>
