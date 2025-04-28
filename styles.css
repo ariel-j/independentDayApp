@@ -1,0 +1,104 @@
+:root {
+    --israel-blue: #0038b8;
+    --white: #ffffff;
+}
+
+body {
+    margin: 0;
+    padding: 20px;
+    font-family: 'Arial', sans-serif;
+    background-color: var(--white);
+    direction: rtl;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.flag-container {
+    width: 300px;
+    height: 200px;
+    margin: 20px auto;
+    position: relative;
+    border: 2px solid var(--israel-blue);
+}
+
+.flag-top, .flag-bottom {
+    height: 45px;
+    background-color: var(--israel-blue);
+    margin: 27px 0;
+}
+
+.star-of-david {
+    width: 60px;
+    height: 60px;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path fill="%230038b8" d="M50 0l12 36h38l-30 22 11 36-31-21-31 21 11-36-30-22h38z"/></svg>');
+    background-size: contain;
+    background-repeat: no-repeat;
+}
+
+h1 {
+    color: var(--israel-blue);
+    margin: 30px 0;
+    font-size: 2.5em;
+}
+
+.game-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    max-width: 300px;
+    margin: 30px auto;
+}
+
+.game-button {
+    padding: 15px 25px;
+    font-size: 1.1em;
+    background-color: var(--israel-blue);
+    color: var(--white);
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.game-button:hover {
+    background-color: #002a8a;
+}
+
+.game-button:active {
+    transform: scale(0.98);
+}
+
+.song-info {
+    margin-top: 20px;
+    padding: 20px;
+    background-color: #f0f0f0;
+    border-radius: 5px;
+}
+
+.hidden {
+    display: none;
+}
+
+@media (max-width: 600px) {
+    .flag-container {
+        width: 200px;
+        height: 133px;
+    }
+
+    h1 {
+        font-size: 1.8em;
+    }
+
+    .game-button {
+        padding: 12px 20px;
+        font-size: 1em;
+    }
+} 

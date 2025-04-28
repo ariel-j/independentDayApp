@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>משחק שירי יום העצמאות</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="flag-container">
+            <div class="flag-top"></div>
+            <div class="star-of-david"></div>
+            <div class="flag-bottom"></div>
+        </div>
+        
+        <h1>משחק שירי יום העצמאות</h1>
+        
+        <div class="game-controls">
+            <button id="playSegment" class="game-button">נגן 2 שניות</button>
+            <button id="playNextSecond" class="game-button">נגן שנייה נוספת</button>
+            <button id="playFullSong" class="game-button">נגן את כל השיר</button>
+            <button id="nextSong" class="game-button">שיר הבא</button>
+        </div>
+
+        <div class="song-info">
+            <p id="currentSong" class="hidden"></p>
+        </div>
+    </div>
+    <script src="songs.js"></script>
+    <script src="app.js"></script>
+</body>
+</html> 
