@@ -1,7 +1,7 @@
-// Fixed Spotify Authentication Module
-// Uses Authorization Code Flow instead of Implicit Grant Flow
+// Spotify Authentication Module - Fixed Version
+// Important fix: Uses Authorization Code Flow
 
-// Spotify credentials
+// Spotify credentials - hardcoded for direct debugging
 const CLIENT_ID = 'cc355c7f55514ef49516b4cc469844ae';
 const REDIRECT_URI = 'https://ariel-j.github.io/independentDayApp/callback.html';
 const PLAYLIST_ID = '4EgZlZ9ZccgdLyE33GNOCw';
@@ -33,10 +33,9 @@ function redirectToSpotifyAuthorization() {
   console.log("Using Client ID:", CLIENT_ID);
   console.log("Using Redirect URI:", REDIRECT_URI);
   
-  // IMPORTANT CHANGE: Using response_type=code for Authorization Code Flow
-  // instead of response_type=token for Implicit Grant Flow
+  // CRITICAL FIX: Using response_type=code instead of token
   const authUrl = new URL('https://accounts.spotify.com/authorize');
-  authUrl.searchParams.append('response_type', 'code'); // Changed from 'token' to 'code'
+  authUrl.searchParams.append('response_type', 'code'); // CHANGED FROM 'token' to 'code'
   authUrl.searchParams.append('client_id', CLIENT_ID);
   authUrl.searchParams.append('scope', SCOPES.join(' '));
   authUrl.searchParams.append('redirect_uri', REDIRECT_URI);
@@ -62,52 +61,6 @@ function getAuthCodeFromUrl() {
   return code;
 }
 
-// Exchange authorization code for access token
-async function exchangeCodeForToken(code) {
-  try {
-    // Note: This function requires a server-side component or proxy
-    // because client secret should not be exposed in client-side code
-    
-    // For GitHub Pages deployment, you'll need a small proxy server/serverless function
-    // Here's a placeholder for what that request would look like:
-    
-    /*
-    const response = await fetch('YOUR_PROXY_SERVER/exchange-token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        code: code,
-        redirect_uri: REDIRECT_URI
-      })
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Exchange token failed: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    return data.access_token;
-    */
-    
-    // For now, let's use a simpler approach for demo purposes:
-    // Since we can't do the proper token exchange without a backend,
-    // we'll just store the authorization code and pretend it worked
-    
-    console.log("Got authorization code:", code);
-    localStorage.setItem('spotify_auth_code', code);
-    
-    // Create a simulated token for UI testing only
-    const simulatedToken = 'simulated_' + generateRandomString(20);
-    localStorage.setItem('spotify_token', simulatedToken);
-    return simulatedToken;
-  } catch (error) {
-    console.error('Failed to exchange code for token:', error);
-    return null;
-  }
-}
-
 // Check if user is already authenticated
 function isAuthenticated() {
   return !!localStorage.getItem('spotify_token');
@@ -123,40 +76,8 @@ function getStoredAccessToken() {
   return localStorage.getItem('spotify_token');
 }
 
-// Initialize the connection to Spotify
-async function initializeSpotify(playlistId = PLAYLIST_ID) {
-  // If we're on the callback page with an authorization code
-  if (window.location.search.includes('code=')) {
-    const code = getAuthCodeFromUrl();
-    if (code) {
-      const token = await exchangeCodeForToken(code);
-      if (token) {
-        storeAccessToken(token);
-        // Remove the query parameters from the URL
-        window.history.replaceState({}, document.title, window.location.pathname);
-        
-        // Now fetch the playlist (simulated for now)
-        return simulateFetchPlaylist(playlistId);
-      }
-    }
-  } 
-  // If we already have a token
-  else if (isAuthenticated()) {
-    const token = getStoredAccessToken();
-    return simulateFetchPlaylist(playlistId);
-  }
-  // We need authentication
-  else {
-    redirectToSpotifyAuthorization();
-    return null;
-  }
-}
-
 // Simulated playlist fetch for testing without a backend
 function simulateFetchPlaylist(playlistId) {
-  // This function simulates what would happen if we could actually fetch the playlist
-  // In a real implementation, this would make an API call to Spotify
-  
   console.log("Simulating playlist fetch for ID:", playlistId);
   
   // Return some sample data for testing
@@ -174,8 +95,50 @@ function simulateFetchPlaylist(playlistId) {
       path: "songs/jerusalem_of_gold.mp3",
       played: false,
       albumCover: "https://via.placeholder.com/300"
+    },
+    {
+      title: "הללויה",
+      artist: "Sample Artist 3",
+      path: "songs/hallelujah.mp3",
+      played: false,
+      albumCover: "https://via.placeholder.com/300"
+    },
+    {
+      title: "אני ואתה",
+      artist: "Sample Artist 4",
+      path: "songs/ani_veata.mp3",
+      played: false,
+      albumCover: "https://via.placeholder.com/300"
     }
   ];
+}
+
+// Initialize the connection to Spotify
+async function initializeSpotify(playlistId = PLAYLIST_ID) {
+  // If we're on the callback page with an authorization code
+  if (window.location.search.includes('code=')) {
+    const code = getAuthCodeFromUrl();
+    if (code) {
+      // Simply store a simulated token for now
+      const simulatedToken = 'simulated_' + generateRandomString(20);
+      storeAccessToken(simulatedToken);
+      
+      // Remove the query parameters from the URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+      
+      // Now fetch the playlist (simulated for now)
+      return simulateFetchPlaylist(playlistId);
+    }
+  } 
+  // If we already have a token
+  else if (isAuthenticated()) {
+    return simulateFetchPlaylist(playlistId);
+  }
+  // We need authentication
+  else {
+    redirectToSpotifyAuthorization();
+    return null;
+  }
 }
 
 // Export the functions
