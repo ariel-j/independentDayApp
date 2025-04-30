@@ -1,11 +1,10 @@
 // Spotify Authentication Module
 // Handles the connection to Spotify Web API and fetching songs from a playlist
-import { SPOTIFY_CONFIG } from './config.js';
 
-// Get Spotify App credentials from config
-const CLIENT_ID = SPOTIFY_CONFIG.CLIENT_ID; 
-const REDIRECT_URI = SPOTIFY_CONFIG.REDIRECT_URI;
-const PLAYLIST_ID = SPOTIFY_CONFIG.PLAYLIST_ID;
+// Hard-coded credentials for direct testing (matches your Spotify Dashboard)
+const CLIENT_ID = 'cc355c7f55514ef49516b4cc469844ae';
+const REDIRECT_URI = 'https://ariel-j.github.io/independentDayApp/callback.html';
+const PLAYLIST_ID = '4EgZlZ9ZccgdLyE33GNOCw';
 
 // Scopes define what your application can access
 const SCOPES = [
@@ -34,9 +33,6 @@ function redirectToSpotifyAuthorization() {
   // Log the current values to help with debugging
   console.log("Using Client ID:", CLIENT_ID);
   console.log("Using Redirect URI:", REDIRECT_URI);
-  
-  // Use the exact redirect URI from config - do not modify it
-  // It must match exactly what's in the Spotify Dashboard
   
   const authUrl = new URL('https://accounts.spotify.com/authorize');
   authUrl.searchParams.append('response_type', 'token');
@@ -127,7 +123,7 @@ function getStoredAccessToken() {
 }
 
 // Initialize the connection to Spotify
-async function initializeSpotify(playlistId) {
+async function initializeSpotify(playlistId = PLAYLIST_ID) {
   // If we're on the callback page after Spotify auth
   if (window.location.hash.includes('access_token')) {
     const token = getAccessTokenFromUrl();
