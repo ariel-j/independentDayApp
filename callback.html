@@ -25,6 +25,20 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        
+        .debug-info {
+            background-color: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 20px;
+            text-align: left;
+            direction: ltr;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
     </style>
 </head>
 <body>
@@ -33,28 +47,80 @@
             <h1>מתחבר לספוטיפיי</h1>
             <div class="spinner"></div>
             <p>אנא המתן בזמן שאנו מתחברים לחשבון הספוטיפיי שלך...</p>
+            
+            <div class="debug-info" id="debug"></div>
+            
+            <button id="manualBtn" style="display:none; margin-top: 20px;" class="game-button">המשך באופן ידני</button>
         </div>
     </div>
     
-    <script type="module">
-        // This page processes the callback from Spotify's authorization
-        import { initializeSpotify } from './spotify-auth.js';
+    <script>
+        // Simple debugging function
+        function logDebug(message) {
+            const debugElement = document.getElementById('debug');
+            const timestamp = new Date().toISOString().substr(11, 8);
+            debugElement.innerHTML += `[${timestamp}] ${message}\n`;
+            console.log(message);
+        }
         
-        window.addEventListener('DOMContentLoaded', async () => {
-            try {
-                // Process the callback from Spotify
-                await initializeSpotify();
+        // Parse the hash parameters
+        function getHashParams() {
+            const hashParams = {};
+            let e;
+            const r = /([^&;=]+)=?([^&;]*)/g;
+            const q = window.location.hash.substring(1);
+            
+            while (e = r.exec(q)) {
+                hashParams[e[1]] = decodeURIComponent(e[2]);
+            }
+            
+            return hashParams;
+        }
+        
+        // Main function
+        document.addEventListener('DOMContentLoaded', function() {
+            logDebug('Callback page loaded');
+            logDebug(`Current URL: ${window.location.href}`);
+            
+            // Check if we have the access token in the URL hash
+            const params = getHashParams();
+            logDebug(`Hash params found: ${Object.keys(params).join(', ')}`);
+            
+            if (params.access_token) {
+                logDebug('Access token found');
                 
-                // Redirect back to the main page after processing
-                window.location.href = 'index.html';
-            } catch (error) {
-                console.error('Error during Spotify authorization:', error);
-                // Show error message to user
-                document.querySelector('.callback-container').innerHTML = `
-                    <h1>אירעה שגיאה</h1>
-                    <p>לא הצלחנו להתחבר לספוטיפיי. אנא נסה שוב.</p>
-                    <a href="index.html" class="game-button">חזור לעמוד הראשי</a>
-                `;
+                // Store the token in localStorage
+                localStorage.setItem('spotify_token', params.access_token);
+                logDebug('Token stored in localStorage');
+                
+                // Validate the state if present
+                if (params.state) {
+                    const storedState = localStorage.getItem('spotify_auth_state');
+                    logDebug(`State validation: Received=${params.state}, Stored=${storedState}`);
+                    
+                    if (storedState !== params.state) {
+                        logDebug('WARNING: State mismatch!');
+                    }
+                    
+                    localStorage.removeItem('spotify_auth_state');
+                }
+                
+                // Redirect back to main page after a short delay
+                setTimeout(function() {
+                    logDebug('Redirecting to index.html');
+                    window.location.href = 'index.html';
+                }, 2000);
+            } else {
+                logDebug('ERROR: No access token found in callback URL');
+                document.querySelector('.spinner').style.display = 'none';
+                document.querySelector('p').innerHTML = 'לא נמצא אסימון גישה בכתובת ה-URL. יתכן שהאימות נכשל.';
+                
+                // Show manual button
+                const manualBtn = document.getElementById('manualBtn');
+                manualBtn.style.display = 'block';
+                manualBtn.addEventListener('click', function() {
+                    window.location.href = 'index.html';
+                });
             }
         });
     </script>
