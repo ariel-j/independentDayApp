@@ -35,19 +35,14 @@ function redirectToSpotifyAuthorization() {
   console.log("Using Client ID:", CLIENT_ID);
   console.log("Using Redirect URI:", REDIRECT_URI);
   
-  // For local development, you may need a more specific redirect URI
-  let redirectUri = REDIRECT_URI;
-  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    // When testing locally, use the full URL including port
-    redirectUri = window.location.origin + '/callback.html';
-    console.log("Local development detected, using:", redirectUri);
-  }
+  // Use the exact redirect URI from config - do not modify it
+  // It must match exactly what's in the Spotify Dashboard
   
   const authUrl = new URL('https://accounts.spotify.com/authorize');
   authUrl.searchParams.append('response_type', 'token');
   authUrl.searchParams.append('client_id', CLIENT_ID);
   authUrl.searchParams.append('scope', SCOPES.join(' '));
-  authUrl.searchParams.append('redirect_uri', redirectUri);
+  authUrl.searchParams.append('redirect_uri', REDIRECT_URI);
   authUrl.searchParams.append('state', state);
   
   console.log("Redirecting to:", authUrl.toString());
