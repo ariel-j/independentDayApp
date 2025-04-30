@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>מתחבר לספוטיפיי</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .callback-container {
+            text-align: center;
+            padding: 50px 20px;
+        }
+        
+        .spinner {
+            border: 5px solid rgba(0, 56, 184, 0.1);
+            border-radius: 50%;
+            border-top: 5px solid var(--israeli-blue);
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="callback-container">
+            <h1>מתחבר לספוטיפיי</h1>
+            <div class="spinner"></div>
+            <p>אנא המתן בזמן שאנו מתחברים לחשבון הספוטיפיי שלך...</p>
+        </div>
+    </div>
+    
+    <script type="module">
+        // This page processes the callback from Spotify's authorization
+        import { initializeSpotify } from './spotify-auth.js';
+        
+        window.addEventListener('DOMContentLoaded', async () => {
+            try {
+                // Process the callback from Spotify
+                await initializeSpotify();
+                
+                // Redirect back to the main page after processing
+                window.location.href = 'index.html';
+            } catch (error) {
+                console.error('Error during Spotify authorization:', error);
+                // Show error message to user
+                document.querySelector('.callback-container').innerHTML = `
+                    <h1>אירעה שגיאה</h1>
+                    <p>לא הצלחנו להתחבר לספוטיפיי. אנא נסה שוב.</p>
+                    <a href="index.html" class="game-button">חזור לעמוד הראשי</a>
+                `;
+            }
+        });
+    </script>
+</body>
+</html>

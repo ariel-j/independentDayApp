@@ -1,214 +1,220 @@
 :root {
-    --israel-blue: #0038b8;
-    --israel-blue-light: #1e4fcc;
+    --israeli-blue: #0038b8;
     --white: #ffffff;
-    --gray-light: #f5f5f5;
-    --gray: #e0e0e0;
-    --shadow: rgba(0, 0, 0, 0.1);
-}
-
-* {
+    --spotify-green: #1DB954;
+    --spotify-black: #191414;
+  }
+  
+  * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-}
-
-body {
-    margin: 0;
-    padding: 0;
-    min-height: 100vh;
-    font-family: 'Segoe UI', 'Arial', sans-serif;
-    background: linear-gradient(135deg, var(--white) 0%, var(--gray-light) 100%);
-    direction: rtl;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.container {
-    max-width: 800px;
-    margin: 20px;
-    text-align: center;
+    font-family: 'Arial', sans-serif;
+  }
+  
+  body {
     background-color: var(--white);
-    border-radius: 20px;
-    box-shadow: 0 10px 30px var(--shadow);
-    padding: 30px;
+    color: var(--israeli-blue);
+    direction: rtl;
+  }
+  
+  .container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  
+  /* Flag styling */
+  .flag-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 30px;
+  }
+  
+  .flag {
+    width: 60px;
+    height: 40px;
+    background-color: var(--white);
     position: relative;
-    overflow: hidden;
-}
-
-.flag-container {
-    width: 300px;
-    height: 200px;
-    margin: 20px auto;
-    position: relative;
-    border: 2px solid var(--israel-blue);
-    border-radius: 10px;
-    overflow: hidden;
-    box-shadow: 0 5px 15px var(--shadow);
-    transition: transform 0.3s ease;
-}
-
-.flag-container:hover {
-    transform: scale(1.02);
-}
-
-.flag-top, .flag-bottom {
-    height: 45px;
-    background-color: var(--israel-blue);
-    margin: 27px 0;
-    position: relative;
-    z-index: 1;
-}
-
-.star-of-david {
-    width: 70px;
-    height: 70px;
+    margin: 0 20px;
+    border: 1px solid var(--israeli-blue);
+  }
+  
+  .flag::before,
+  .flag::after {
+    content: "";
     position: absolute;
-    left: 50%;
+    width: 100%;
+    height: 8px;
+    background-color: var(--israeli-blue);
+  }
+  
+  .flag::before {
+    top: 6px;
+  }
+  
+  .flag::after {
+    bottom: 6px;
+  }
+  
+  .flag::before,
+  .flag::after {
+    content: "";
+    position: absolute;
+    width: 100%;
+    height: 8px;
+    background-color: var(--israeli-blue);
+  }
+  
+  .flag .star {
+    position: absolute;
     top: 50%;
+    left: 50%;
     transform: translate(-50%, -50%);
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path fill="%230038b8" d="M50 0l12 36h38l-30 22 11 36-31-21-31 21 11-36-30-22h38z"/></svg>');
-    background-size: contain;
-    background-repeat: no-repeat;
-    animation: rotate 20s linear infinite;
-    z-index: 2;
-}
-
-@keyframes rotate {
-    from { transform: translate(-50%, -50%) rotate(0deg); }
-    to { transform: translate(-50%, -50%) rotate(360deg); }
-}
-
-h1 {
-    color: var(--israel-blue);
-    margin: 30px 0;
-    font-size: 2.5em;
+    color: var(--israeli-blue);
+    font-size: 20px;
+  }
+  
+  h1 {
+    text-align: center;
+    color: var(--israeli-blue);
+    margin: 10px 0;
+  }
+  
+  .game-container {
+    background-color: var(--white);
+    border: 3px solid var(--israeli-blue);
+    border-radius: 10px;
+    padding: 20px;
+    margin-top: 20px;
+    box-shadow: 0 4px 8px rgba(0, 56, 184, 0.3);
+  }
+  
+  #current-score {
+    text-align: left;
+    font-size: 1.2em;
+    margin-bottom: 15px;
+    color: var(--israeli-blue);
     font-weight: bold;
-    text-shadow: 2px 2px 4px var(--shadow);
-    position: relative;
-}
-
-h1::after {
-    content: '';
-    display: block;
-    width: 100px;
-    height: 3px;
-    background: var(--israel-blue);
-    margin: 10px auto;
-    border-radius: 2px;
-}
-
-.game-controls {
+  }
+  
+  #audio-player {
+    margin: 20px 0;
+    text-align: center;
     display: flex;
     flex-direction: column;
-    gap: 15px;
-    max-width: 300px;
-    margin: 30px auto;
-}
-
-.game-button {
-    padding: 15px 25px;
+    align-items: center;
+    gap: 10px;
+  }
+  
+  #album-cover {
+    width: 150px;
+    height: 150px;
+    border-radius: 5px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    margin: 10px auto;
+    object-fit: cover;
+  }
+  
+  #song-title {
+    font-size: 1.5em;
+    font-weight: bold;
+    margin: 10px 0 5px;
+    padding: 10px;
+    background-color: var(--israeli-blue);
+    color: var(--white);
+    border-radius: 5px;
+    width: 100%;
+  }
+  
+  #song-artist {
     font-size: 1.1em;
-    background-color: var(--israel-blue);
+    margin: 0 0 10px;
+    color: var(--israeli-blue);
+    font-style: italic;
+  }
+  
+  .buttons-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 20px;
+  }
+  
+  .game-button {
+    background-color: var(--israeli-blue);
     color: var(--white);
     border: none;
-    border-radius: 50px;
+    border-radius: 5px;
+    padding: 12px 20px;
+    font-size: 1em;
     cursor: pointer;
     transition: all 0.3s ease;
-    position: relative;
-    overflow: hidden;
-    box-shadow: 0 4px 15px var(--shadow);
-}
-
-.game-button:hover {
-    background-color: var(--israel-blue-light);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px var(--shadow);
-}
-
-.game-button:active {
-    transform: translateY(0);
-    box-shadow: 0 2px 10px var(--shadow);
-}
-
-.game-button:disabled {
-    background-color: var(--gray);
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
-}
-
-.game-button::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 5px;
-    height: 5px;
-    background: rgba(255, 255, 255, 0.5);
-    opacity: 0;
-    border-radius: 100%;
-    transform: scale(1, 1) translate(-50%);
-    transform-origin: 50% 50%;
-}
-
-.game-button:focus:not(:active)::after {
-    animation: ripple 1s ease-out;
-}
-
-@keyframes ripple {
-    0% {
-        transform: scale(0, 0);
-        opacity: 0.5;
-    }
-    100% {
-        transform: scale(100, 100);
-        opacity: 0;
-    }
-}
-
-.song-info {
-    margin-top: 20px;
-    padding: 20px;
-    background-color: var(--gray-light);
-    border-radius: 15px;
+  }
+  
+  .game-button:hover {
+    background-color: #002c92;
+    transform: scale(1.05);
+  }
+  
+  .game-button:active {
+    transform: scale(0.98);
+  }
+  
+  /* Spotify integration */
+  .spotify-section {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(0, 56, 184, 0.3);
+    text-align: center;
+  }
+  
+  .spotify-button {
+    background-color: var(--spotify-green);
+    color: var(--white);
+    border: none;
+    border-radius: 25px;
+    padding: 10px 20px;
+    font-size: 1em;
+    cursor: pointer;
     transition: all 0.3s ease;
-    opacity: 1;
-}
-
-.song-info.hidden {
-    opacity: 0;
-    transform: translateY(20px);
-}
-
-#currentSong {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin: 0 auto;
+  }
+  
+  .spotify-button:hover {
+    background-color: #1aa34a;
+    transform: scale(1.05);
+  }
+  
+  .spotify-icon {
     font-size: 1.2em;
-    color: var(--israel-blue);
-    font-weight: bold;
-}
-
-@media (max-width: 600px) {
-    .container {
-        margin: 10px;
-        padding: 20px;
-    }
-
-    .flag-container {
-        width: 200px;
-        height: 133px;
-    }
-
-    h1 {
-        font-size: 1.8em;
-    }
-
-    .game-button {
-        padding: 12px 20px;
-        font-size: 1em;
+  }
+  
+  .spotify-note {
+    margin-top: 10px;
+    font-size: 0.9em;
+    color: #666;
+  }
+  
+  .hidden {
+    display: none;
+  }
+  
+  /* Responsive design */
+  @media (max-width: 600px) {
+    .buttons-container {
+      flex-direction: column;
+      align-items: center;
     }
     
-    .song-info {
-        padding: 15px;
+    .game-button {
+      width: 100%;
+      margin: 5px 0;
     }
-} 
+  } 

@@ -3,38 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>משחק שירי יום העצמאות</title>
+    <title>חידון שירים ליום העצמאות</title>
     <link rel="stylesheet" href="styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="container">
         <div class="flag-container">
-            <div class="flag-top"></div>
-            <div class="star-of-david"></div>
-            <div class="flag-bottom"></div>
+            <div class="flag left"></div>
+            <h1>חידון שירים ליום העצמאות</h1>
+            <div class="flag right"></div>
         </div>
         
-        <h1>משחק שירי יום העצמאות</h1>
-        
-        <div class="game-controls">
-            <button id="nextSong" class="game-button">שיר הבא ▶</button>
-            <button id="playSegment" class="game-button">נגן 2 שניות 🎵</button>
-            <button id="playNextSecond" class="game-button">נגן שנייה נוספת ⏩</button>
-            <button id="playFullSong" class="game-button">נגן את כל השיר 🎼</button>
+        <div class="game-container">
+            <div id="current-score">ניקוד: <span id="score">0</span></div>
+            
+            <div id="audio-player">
+                <audio id="song-player" src=""></audio>
+                <img id="album-cover" class="hidden" src="" alt="Album Cover">
+                <div id="song-title" class="hidden"></div>
+                <div id="song-artist" class="hidden"></div>
+            </div>
+            
+            <div class="buttons-container">
+                <button id="play-segment" class="game-button">נגן 2 שניות</button>
+                <button id="play-next-segment" class="game-button">נגן שנייה נוספת</button>
+                <button id="reveal-song" class="game-button">גלה את השיר</button>
+                <button id="play-full" class="game-button">נגן את כל השיר</button>
+                <button id="next-song" class="game-button">השיר הבא</button>
+            </div>
+            
+            <div class="spotify-section">
+                <button id="spotify-login" class="spotify-button">
+                    <span class="spotify-icon">🎵</span> התחבר לספוטיפיי
+                </button>
+                <p class="spotify-note">חבר את ספוטיפיי כדי להשתמש בפלייליסט האישי שלך</p>
+            </div>
         </div>
-
-        <div class="song-info">
-            <p id="currentSong" class="hidden"></p>
-        </div>
-
-        <!-- Hidden YouTube player -->
-        <div id="player" style="display: none;"></div>
     </div>
-
-    <!-- Load YouTube IFrame API -->
-    <script src="https://www.youtube.com/iframe_api"></script>
+    
     <script src="songs.js"></script>
-    <script src="app.js"></script>
+    <script type="module" src="app.js"></script>
 </body>
-</html> 
+</html>

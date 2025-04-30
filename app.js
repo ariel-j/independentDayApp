@@ -1,144 +1,194 @@
+// Main application logic for the Israeli Independence Day Song Quiz
+import { initializeSpotify, isAuthenticated, redirectToSpotifyAuthorization } from './spotify-auth.js';
+
 // DOM Elements
-const playSegmentButton = document.getElementById('playSegment');
-const playNextSecondButton = document.getElementById('playNextSecond');
-const playFullSongButton = document.getElementById('playFullSong');
-const nextSongButton = document.getElementById('nextSong');
-const currentSongElement = document.getElementById('currentSong');
+const songPlayer = document.getElementById('song-player');
+const songTitle = document.getElementById('song-title');
+const songArtist = document.getElementById('song-artist');
+const albumCover = document.getElementById('album-cover');
+const playSegmentBtn = document.getElementById('play-segment');
+const playNextSegmentBtn = document.getElementById('play-next-segment');
+const revealSongBtn = document.getElementById('reveal-song');
+const playFullBtn = document.getElementById('play-full');
+const nextSongBtn = document.getElementById('next-song');
+const scoreElement = document.getElementById('score');
+const loginButton = document.getElementById('spotify-login');
 
 // Game state
-let currentSong = null;
-let player = null;
-let currentStartTime = 0;
+let currentSongIndex = null;
+let playedSegments = 0;
+let score = 0;
+let gameSongs = [];
+let unplayedSongs = [];
 
-// Disable buttons initially
-playSegmentButton.disabled = true;
-playNextSecondButton.disabled = true;
-playFullSongButton.disabled = true;
-nextSongButton.disabled = true;
+// Import Spotify configuration 
+import { SPOTIFY_CONFIG } from './config.js';
 
-// YouTube API callback
-function onYouTubeIframeAPIReady() {
-    console.log('YouTube API Ready');
-    player = new YT.Player('player', {
-        height: '0',
-        width: '0',
-        playerVars: {
-            'autoplay': 0,
-            'controls': 0,
-            'disablekb': 1
-        },
-        events: {
-            'onReady': onPlayerReady,
-            'onError': onPlayerError,
-            'onStateChange': onPlayerStateChange
-        }
+// Initialize the game
+async function initializeGame() {
+  // Check if we need to get songs from Spotify
+  if (loginButton) {
+    loginButton.addEventListener('click', () => redirectToSpotifyAuthorization());
+  }
+  
+  if (isAuthenticated()) {
+    try {
+      // Hide login button if authenticated
+      if (loginButton) {
+        loginButton.classList.add('hidden');
+      }
+      
+      // Get songs from Spotify
+      const spotifySongs = await initializeSpotify(SPOTIFY_CONFIG.PLAYLIST_ID);
+      
+      if (spotifySongs && spotifySongs.length > 0) {
+        gameSongs = spotifySongs;
+        unplayedSongs = [...gameSongs];
+        resetGameState();
+        selectNextSong();
+      } else {
+        // If we couldn't get Spotify songs, use the default ones
+        gameSongs = songs;
+        unplayedSongs = [...songs];
+        resetGameState();
+        selectNextSong();
+      }
+    } catch (error) {
+      console.error('Error initializing with Spotify:', error);
+      // Fall back to local songs
+      gameSongs = songs;
+      unplayedSongs = [...songs];
+      resetGameState();
+      selectNextSong();
+    }
+  } else {
+    // If not authenticated, use local songs
+    gameSongs = songs;
+    unplayedSongs = [...songs];
+    resetGameState();
+    selectNextSong();
+    
+    // Show login button
+    if (loginButton) {
+      loginButton.classList.remove('hidden');
+    }
+  }
+}
+
+// Reset the game state
+function resetGameState() {
+  playedSegments = 0;
+  songTitle.classList.add('hidden');
+  if (songArtist) songArtist.classList.add('hidden');
+  songPlayer.pause();
+  songPlayer.currentTime = 0;
+}
+
+// Select a random song that hasn't been played yet
+function selectNextSong() {
+  if (unplayedSongs.length === 0) {
+    // All songs have been played, reset the list
+    unplayedSongs = [...gameSongs].map(song => ({...song, played: false}));
+  }
+  
+  // Select a random unplayed song
+  const randomIndex = Math.floor(Math.random() * unplayedSongs.length);
+  const selectedSong = unplayedSongs[randomIndex];
+  
+  // Remove the selected song from unplayed songs
+  unplayedSongs.splice(randomIndex, 1);
+  
+  // Update current song
+  currentSongIndex = gameSongs.findIndex(song => song.title === selectedSong.title);
+  songPlayer.src = gameSongs[currentSongIndex].path;
+  
+  // Update album cover if available
+  if (albumCover && gameSongs[currentSongIndex].albumCover) {
+    albumCover.src = gameSongs[currentSongIndex].albumCover;
+    albumCover.classList.remove('hidden');
+  } else if (albumCover) {
+    albumCover.classList.add('hidden');
+  }
+  
+  return selectedSong;
+}
+
+// Play initial segment (first 2 seconds)
+function playInitialSegment() {
+  resetPlayback();
+  playedSegments = 1;
+  playSegment(0, 2);
+}
+
+// Play next segment (additional 1 second)
+function playNextSegment() {
+  if (playedSegments === 0) {
+    playInitialSegment();
+    return;
+  }
+  
+  const startTime = playedSegments + 1;
+  playedSegments++;
+  playSegment(startTime, startTime + 1);
+}
+
+// Play a specific segment of the current song
+function playSegment(startTime, endTime) {
+  songPlayer.currentTime = startTime;
+  
+  const playPromise = songPlayer.play();
+  
+  if (playPromise !== undefined) {
+    playPromise.then(() => {
+      // Set timeout to pause after segment duration
+      setTimeout(() => {
+        songPlayer.pause();
+      }, (endTime - startTime) * 1000);
+    }).catch(error => {
+      console.error('Playback error:', error);
     });
+  }
 }
 
-function onPlayerReady(event) {
-    console.log('Player Ready');
-    nextSongButton.disabled = false;
+// Reveal the current song title
+function revealSong() {
+  songTitle.textContent = gameSongs[currentSongIndex].title;
+  songTitle.classList.remove('hidden');
+  
+  // Show artist if available
+  if (songArtist && gameSongs[currentSongIndex].artist) {
+    songArtist.textContent = gameSongs[currentSongIndex].artist;
+    songArtist.classList.remove('hidden');
+  }
 }
 
-function onPlayerError(event) {
-    console.error('Player Error:', event.data);
-    alert('שגיאה בטעינת השיר. נסה שיר אחר.');
-    nextSongButton.disabled = false;
+// Play the full song
+function playFullSong() {
+  songPlayer.currentTime = 0;
+  songPlayer.play();
+  revealSong();
 }
 
-function onPlayerStateChange(event) {
-    console.log('Player State:', event.data);
+// Move to the next song
+function moveToNextSong() {
+  score++;
+  scoreElement.textContent = score;
+  resetGameState();
+  selectNextSong();
 }
 
-// Game functions
-function getRandomSong() {
-    const availableSongs = songs.filter(song => !playedSongs.has(song.id));
-    if (availableSongs.length === 0) {
-        playedSongs.clear(); // Reset if all songs have been played
-        return songs[Math.floor(Math.random() * songs.length)];
-    }
-    return availableSongs[Math.floor(Math.random() * availableSongs.length)];
+// Event listeners
+playSegmentBtn.addEventListener('click', playInitialSegment);
+playNextSegmentBtn.addEventListener('click', playNextSegment);
+revealSongBtn.addEventListener('click', revealSong);
+playFullBtn.addEventListener('click', playFullSong);
+nextSongBtn.addEventListener('click', moveToNextSong);
+
+// Reset playback helper function
+function resetPlayback() {
+  songPlayer.pause();
+  songPlayer.currentTime = 0;
 }
 
-function getYouTubeVideoId(url) {
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-    const match = url.match(regExp);
-    return (match && match[2].length === 11) ? match[2] : null;
-}
-
-function loadNewSong() {
-    try {
-        currentSong = getRandomSong();
-        playedSongs.add(currentSong.id);
-        currentStartTime = 0;
-        const videoId = getYouTubeVideoId(currentSong.url);
-        
-        if (!videoId) {
-            console.error('Invalid YouTube URL:', currentSong.url);
-            alert('שגיאה בטעינת השיר. נסה שיר אחר.');
-            return;
-        }
-
-        console.log('Loading song:', currentSong.title);
-        player.loadVideoById(videoId);
-        player.pauseVideo();
-        currentSongElement.classList.add('hidden');
-        
-        // Enable play buttons
-        playSegmentButton.disabled = false;
-        playNextSecondButton.disabled = false;
-        playFullSongButton.disabled = false;
-    } catch (error) {
-        console.error('Error loading song:', error);
-        alert('שגיאה בטעינת השיר. נסה שוב.');
-    }
-}
-
-function playCurrentSegment(duration) {
-    if (!currentSong || !player) {
-        console.error('No song loaded or player not ready');
-        return;
-    }
-    
-    try {
-        console.log('Playing segment from:', currentStartTime, 'duration:', duration);
-        player.seekTo(currentStartTime);
-        player.playVideo();
-        
-        setTimeout(() => {
-            player.pauseVideo();
-        }, duration * 1000);
-    } catch (error) {
-        console.error('Error playing segment:', error);
-        alert('שגיאה בהשמעת השיר. נסה שוב.');
-    }
-}
-
-// Event Listeners
-playSegmentButton.addEventListener('click', () => {
-    playCurrentSegment(2);
-});
-
-playNextSecondButton.addEventListener('click', () => {
-    currentStartTime += 1;
-    playCurrentSegment(1);
-});
-
-playFullSongButton.addEventListener('click', () => {
-    if (!currentSong || !player) return;
-    
-    try {
-        player.seekTo(0);
-        player.playVideo();
-        currentSongElement.textContent = `השיר הוא: ${currentSong.title} - ${currentSong.artist}`;
-        currentSongElement.classList.remove('hidden');
-    } catch (error) {
-        console.error('Error playing full song:', error);
-        alert('שגיאה בהשמעת השיר. נסה שוב.');
-    }
-});
-
-nextSongButton.addEventListener('click', loadNewSong);
-
-// Initialize game
-console.log('Game initialized'); 
+// Initialize the game when page loads
+window.addEventListener('DOMContentLoaded', initializeGame);
