@@ -13,6 +13,7 @@ const playFullBtn = document.getElementById('play-full');
 const nextSongBtn = document.getElementById('next-song');
 const scoreElement = document.getElementById('score');
 const loginButton = document.getElementById('spotify-login');
+const spotifyStatus = document.getElementById('spotify-status');
 
 // Game state
 let currentSongIndex = null;
@@ -21,57 +22,67 @@ let score = 0;
 let gameSongs = [];
 let unplayedSongs = [];
 
-// Import Spotify configuration 
-import { SPOTIFY_CONFIG } from './config.js';
-
 // Initialize the game
 async function initializeGame() {
-  // Check if we need to get songs from Spotify
-  if (loginButton) {
-    loginButton.addEventListener('click', () => redirectToSpotifyAuthorization());
-  }
-  
-  if (isAuthenticated()) {
-    try {
-      // Hide login button if authenticated
-      if (loginButton) {
-        loginButton.classList.add('hidden');
-      }
-      
-      // Get songs from Spotify
-      const spotifySongs = await initializeSpotify(SPOTIFY_CONFIG.PLAYLIST_ID);
-      
-      if (spotifySongs && spotifySongs.length > 0) {
-        gameSongs = spotifySongs;
-        unplayedSongs = [...gameSongs];
-        resetGameState();
-        selectNextSong();
-      } else {
-        // If we couldn't get Spotify songs, use the default ones
-        gameSongs = songs;
-        unplayedSongs = [...songs];
-        resetGameState();
-        selectNextSong();
-      }
-    } catch (error) {
-      console.error('Error initializing with Spotify:', error);
-      // Fall back to local songs
-      gameSongs = songs;
-      unplayedSongs = [...songs];
-      resetGameState();
-      selectNextSong();
+  try {
+    console.log("Initializing game...");
+    
+    // Setup Spotify login button
+    if (loginButton) {
+      loginButton.addEventListener('click', handleSpotifyLogin);
     }
-  } else {
-    // If not authenticated, use local songs
+    
+    // Check if authenticated with Spotify
+    if (isAuthenticated()) {
+      updateSpotifyStatus("מחובר לספוטיפיי");
+      try {
+        // Get songs from Spotify (or simulated data)
+        console.log("Getting songs from Spotify...");
+        const spotifySongs = await initializeSpotify();
+        
+        if (spotifySongs && spotifySongs.length > 0) {
+          console.log("Got songs from Spotify:", spotifySongs.length);
+          gameSongs = spotifySongs;
+        } else {
+          console.log("No songs from Spotify, using default songs");
+          gameSongs = songs; // Fallback to local songs
+        }
+      } catch (error) {
+        console.error("Error getting Spotify songs:", error);
+        gameSongs = songs; // Fallback to local songs
+      }
+    } else {
+      console.log("Not authenticated with Spotify, using default songs");
+      gameSongs = songs;
+      updateSpotifyStatus("לא מחובר לספוטיפיי");
+    }
+    
+    // Initialize game with songs
+    unplayedSongs = [...gameSongs];
+    resetGameState();
+    selectNextSong();
+    
+    console.log("Game initialized with", gameSongs.length, "songs");
+  } catch (error) {
+    console.error("Error in game initialization:", error);
+    // Fallback to local songs in case of any error
     gameSongs = songs;
     unplayedSongs = [...songs];
     resetGameState();
     selectNextSong();
-    
-    // Show login button
-    if (loginButton) {
-      loginButton.classList.remove('hidden');
-    }
+  }
+}
+
+// Handle Spotify login button click
+function handleSpotifyLogin() {
+  console.log("Spotify login button clicked");
+  redirectToSpotifyAuthorization();
+}
+
+// Update Spotify status display
+function updateSpotifyStatus(message) {
+  if (spotifyStatus) {
+    spotifyStatus.textContent = message;
   }
 }
 
@@ -80,6 +91,7 @@ function resetGameState() {
   playedSegments = 0;
   songTitle.classList.add('hidden');
   if (songArtist) songArtist.classList.add('hidden');
+  if (albumCover) albumCover.classList.add('hidden');
   songPlayer.pause();
   songPlayer.currentTime = 0;
 }
@@ -105,9 +117,7 @@ function selectNextSong() {
   // Update album cover if available
   if (albumCover && gameSongs[currentSongIndex].albumCover) {
     albumCover.src = gameSongs[currentSongIndex].albumCover;
-    albumCover.classList.remove('hidden');
-  } else if (albumCover) {
-    albumCover.classList.add('hidden');
+    albumCover.classList.add('hidden'); // Keep hidden until revealed
   }
   
   return selectedSong;
@@ -160,6 +170,11 @@ function revealSong() {
     songArtist.textContent = gameSongs[currentSongIndex].artist;
     songArtist.classList.remove('hidden');
   }
+  
+  // Show album cover if available
+  if (albumCover && gameSongs[currentSongIndex].albumCover) {
+    albumCover.classList.remove('hidden');
+  }
 }
 
 // Play the full song
@@ -177,18 +192,18 @@ function moveToNextSong() {
   selectNextSong();
 }
 
+// Reset playback helper function
+function resetPlayback() {
+  songPlayer.pause();
+  songPlayer.currentTime = 0;
+}
+
 // Event listeners
 playSegmentBtn.addEventListener('click', playInitialSegment);
 playNextSegmentBtn.addEventListener('click', playNextSegment);
 revealSongBtn.addEventListener('click', revealSong);
 playFullBtn.addEventListener('click', playFullSong);
 nextSongBtn.addEventListener('click', moveToNextSong);
-
-// Reset playback helper function
-function resetPlayback() {
-  songPlayer.pause();
-  songPlayer.currentTime = 0;
-}
 
 // Initialize the game when page loads
 window.addEventListener('DOMContentLoaded', initializeGame);
