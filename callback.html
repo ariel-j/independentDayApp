@@ -68,18 +68,18 @@
             logDebug('Callback page loaded');
             logDebug(`Current URL: ${window.location.href}`);
             
-            // Check if we have the authorization code in the URL query parameters
-            const urlParams = new URLSearchParams(window.location.search);
-            const code = urlParams.get('code');
-            const state = urlParams.get('state');
-            const error = urlParams.get('error');
+            // IMPORTANT: First, log the URL structure to understand what we're receiving
+            logDebug(`URL search (query params): ${window.location.search}`);
+            logDebug(`URL hash: ${window.location.hash}`);
             
-            logDebug(`URL parameters found: ${Array.from(urlParams.keys()).join(', ')}`);
+            // Check if we have error in the URL params
+            const urlParams = new URLSearchParams(window.location.search);
+            const error = urlParams.get('error');
             
             if (error) {
                 logDebug(`ERROR received: ${error}`);
                 document.querySelector('.spinner').style.display = 'none';
-                document.querySelector('p').innerHTML = `שגיאה: ${error}. יתכן שהאימות נכשל.`;
+                document.querySelector('p').innerHTML = `שגיאה: ${error}. אנחנו עובדים על תיקון בעיה זו.`;
                 
                 // Show manual button
                 const manualBtn = document.getElementById('manualBtn');
@@ -90,40 +90,66 @@
                 return;
             }
             
+            // Try to get auth code from query parameters
+            const code = urlParams.get('code');
+            const state = urlParams.get('state');
+            
+            // Alternative: Try to get token from URL hash (for implicit flow)
+            let accessToken = null;
+            if (window.location.hash) {
+                const hashParams = new URLSearchParams(window.location.hash.substring(1));
+                accessToken = hashParams.get('access_token');
+                logDebug(`Looking for token in hash: ${accessToken ? 'Found' : 'Not found'}`);
+            }
+            
+            // If we have the authorization code
             if (code) {
                 logDebug('Authorization code found: ' + code);
                 
-                // Validate the state if present
+                // Validate state if present
                 if (state) {
                     const storedState = localStorage.getItem('spotify_auth_state');
                     logDebug(`State validation: Received=${state}, Stored=${storedState}`);
-                    
-                    if (storedState !== state) {
-                        logDebug('WARNING: State mismatch!');
-                    }
-                    
                     localStorage.removeItem('spotify_auth_state');
                 }
                 
-                // Store the code in localStorage for the main app to use
+                // Store the code
                 localStorage.setItem('spotify_auth_code', code);
                 
-                // In a real implementation, we would exchange this code for an access token
-                // For now, we'll create a simulated token just for testing the UI
+                // Create a simulated token
                 const simulatedToken = 'simulated_' + Math.random().toString(36).substring(2, 15);
                 localStorage.setItem('spotify_token', simulatedToken);
-                
                 logDebug('Simulated token stored in localStorage');
                 
-                // Redirect back to main page after a short delay
+                // Redirect back to main page
                 setTimeout(function() {
                     logDebug('Redirecting to index.html');
                     window.location.href = 'index.html';
                 }, 2000);
-            } else {
-                logDebug('ERROR: No authorization code found in callback URL');
+            }
+            // If we have an access token directly (from implicit flow)
+            else if (accessToken) {
+                logDebug('Access token found in hash fragment');
+                localStorage.setItem('spotify_token', accessToken);
+                
+                // Redirect back to main page
+                setTimeout(function() {
+                    logDebug('Redirecting to index.html');
+                    window.location.href = 'index.html';
+                }, 2000);
+            }
+            // If we have neither code nor token
+            else {
+                logDebug('ERROR: No authorization code or access token found');
                 document.querySelector('.spinner').style.display = 'none';
-                document.querySelector('p').innerHTML = 'לא נמצא קוד אימות בכתובת ה-URL. יתכן שהאימות נכשל.';
+                
+                // For unsupported_response_type error, show specific message
+                if (window.location.href.includes('unsupported_response_type')) {
+                    document.querySelector('p').innerHTML = 'שגיאה: סוג התגובה אינו נתמך. אנחנו עובדים על תיקון בעיה זו.';
+                    logDebug('This appears to be an unsupported_response_type error');
+                } else {
+                    document.querySelector('p').innerHTML = 'לא נמצא קוד אימות בכתובת ה-URL. יתכן שהאימות נכשל.';
+                }
                 
                 // Show manual button
                 const manualBtn = document.getElementById('manualBtn');
