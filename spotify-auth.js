@@ -1,9 +1,11 @@
 // Spotify Authentication Module
 // Handles the connection to Spotify Web API and fetching songs from a playlist
+import { SPOTIFY_CONFIG } from './config.js';
 
-// Your Spotify App credentials - replace with your own
-const CLIENT_ID = 'YOUR_CLIENT_ID'; 
-const REDIRECT_URI = 'http://127.0.0.1:5173/callback'; // Or your GitHub Pages URL when deployed
+// Get Spotify App credentials from config
+const CLIENT_ID = SPOTIFY_CONFIG.CLIENT_ID; 
+const REDIRECT_URI = SPOTIFY_CONFIG.REDIRECT_URI;
+const PLAYLIST_ID = SPOTIFY_CONFIG.PLAYLIST_ID;
 
 // Scopes define what your application can access
 const SCOPES = [
@@ -29,13 +31,26 @@ function redirectToSpotifyAuthorization() {
   const state = generateRandomString(16);
   localStorage.setItem('spotify_auth_state', state);
   
+  // Log the current values to help with debugging
+  console.log("Using Client ID:", CLIENT_ID);
+  console.log("Using Redirect URI:", REDIRECT_URI);
+  
+  // For local development, you may need a more specific redirect URI
+  let redirectUri = REDIRECT_URI;
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    // When testing locally, use the full URL including port
+    redirectUri = window.location.origin + '/callback.html';
+    console.log("Local development detected, using:", redirectUri);
+  }
+  
   const authUrl = new URL('https://accounts.spotify.com/authorize');
   authUrl.searchParams.append('response_type', 'token');
   authUrl.searchParams.append('client_id', CLIENT_ID);
   authUrl.searchParams.append('scope', SCOPES.join(' '));
-  authUrl.searchParams.append('redirect_uri', REDIRECT_URI);
+  authUrl.searchParams.append('redirect_uri', redirectUri);
   authUrl.searchParams.append('state', state);
   
+  console.log("Redirecting to:", authUrl.toString());
   window.location.href = authUrl.toString();
 }
 
