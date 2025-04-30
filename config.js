@@ -4,9 +4,9 @@
 // Your Spotify application credentials
 // Create a Spotify app at https://developer.spotify.com/dashboard
 export const SPOTIFY_CONFIG = {
-  CLIENT_ID: 'YOUR_CLIENT_ID', // Replace with your Spotify Client ID
+  CLIENT_ID: 'cc355c7f55514ef49516b4cc469844ae', // Replace with your Spotify Client ID
   REDIRECT_URI: window.location.origin + '/callback.html', // This will dynamically set based on your deployment URL
-  PLAYLIST_ID: 'YOUR_PLAYLIST_ID' // Replace with your Spotify playlist ID
+  PLAYLIST_ID: 'https://open.spotify.com/playlist/4EgZlZ9ZccgdLyE33GNOCw?si=v2-Oqww2RoytqaoimspU7A' // Replace with your Spotify playlist ID
 };
 
 // To find your playlist ID:
