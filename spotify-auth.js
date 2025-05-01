@@ -1,13 +1,11 @@
-// Spotify Authentication Module - Using Backend for Token Exchange
-// This version connects to a serverless function for the token exchange
+// Spotify Authentication Module - Using Implicit Grant Flow
+// Import Spotify credentials from config
+import { SPOTIFY_CONFIG } from './config.js';
 
 // Spotify credentials
-const CLIENT_ID = 'cc355c7f55514ef49516b4cc469844ae';
-const REDIRECT_URI = 'https://ariel-j.github.io/independentDayApp/callback.html';
-const PLAYLIST_ID = '4EgZlZ9ZccgdLyE33GNOCw';
-
-// Backend function URL for token exchange (replace with your own function URL)
-const TOKEN_EXCHANGE_URL = 'https://your-function-url.netlify.app/.netlify/functions/spotify-token';
+const CLIENT_ID = SPOTIFY_CONFIG.CLIENT_ID;
+const REDIRECT_URI = SPOTIFY_CONFIG.REDIRECT_URI;
+const PLAYLIST_ID = SPOTIFY_CONFIG.PLAYLIST_ID;
 
 // Scopes define what your application can access
 const SCOPES = [
@@ -36,9 +34,9 @@ function redirectToSpotifyAuthorization() {
   console.log("Using Client ID:", CLIENT_ID);
   console.log("Using Redirect URI:", REDIRECT_URI);
   
-  // Using response_type=code for Authorization Code Flow
+  // Using response_type=token for Implicit Grant Flow (no backend needed)
   const authUrl = new URL('https://accounts.spotify.com/authorize');
-  authUrl.searchParams.append('response_type', 'code');
+  authUrl.searchParams.append('response_type', 'token'); // Changed from 'code' to 'token'
   authUrl.searchParams.append('client_id', CLIENT_ID);
   authUrl.searchParams.append('scope', SCOPES.join(' '));
   authUrl.searchParams.append('redirect_uri', REDIRECT_URI);
@@ -48,40 +46,15 @@ function redirectToSpotifyAuthorization() {
   window.location.href = authUrl.toString();
 }
 
-// Exchange authorization code for access token using our backend
-async function exchangeCodeForToken(code) {
-  try {
-    console.log("Exchanging code for token...");
-    const response = await fetch(TOKEN_EXCHANGE_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ code })
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Token exchange failed: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    
-    if (data.error) {
-      throw new Error(`Token error: ${data.error}`);
-    }
-    
-    return data;
-  } catch (error) {
-    console.error('Failed to exchange code for token:', error);
+// Get token from URL hash after redirect from Spotify
+function getTokenFromUrl() {
+  if (!window.location.hash) {
     return null;
   }
-}
-
-// Get authorization code from URL after redirect from Spotify
-function getAuthCodeFromUrl() {
-  const urlParams = new URLSearchParams(window.location.search);
-  const code = urlParams.get('code');
-  const state = urlParams.get('state');
+  
+  const hashParams = new URLSearchParams(window.location.hash.substring(1));
+  const token = hashParams.get('access_token');
+  const state = hashParams.get('state');
   const storedState = localStorage.getItem('spotify_auth_state');
   
   if (state === null || state !== storedState) {
@@ -90,23 +63,29 @@ function getAuthCodeFromUrl() {
   }
   
   localStorage.removeItem('spotify_auth_state');
-  return code;
+  return token;
 }
 
 // Check if user is already authenticated
 function isAuthenticated() {
-  return !!localStorage.getItem('spotify_token');
+  const token = localStorage.getItem('spotify_token');
+  if (!token) return false;
+  
+  // Check if token is expired
+  const expiresTime = parseInt(localStorage.getItem('spotify_token_expires') || '0');
+  if (expiresTime > Date.now()) {
+    return true;
+  } else {
+    // Clear expired token
+    localStorage.removeItem('spotify_token');
+    return false;
+  }
 }
 
 // Store the access token and related data
-function storeTokenData(tokenData) {
-  localStorage.setItem('spotify_token', tokenData.access_token);
-  localStorage.setItem('spotify_token_type', tokenData.token_type);
-  localStorage.setItem('spotify_token_expires', Date.now() + (tokenData.expires_in * 1000));
-  
-  if (tokenData.refresh_token) {
-    localStorage.setItem('spotify_refresh_token', tokenData.refresh_token);
-  }
+function storeTokenData(token, expiresIn) {
+  localStorage.setItem('spotify_token', token);
+  localStorage.setItem('spotify_token_expires', Date.now() + (expiresIn * 1000));
 }
 
 // Get the stored access token
@@ -115,7 +94,7 @@ function getStoredAccessToken() {
 }
 
 // Fetch a playlist from Spotify
-async function fetchPlaylist(playlistId) {
+async function fetchPlaylist(playlistId = PLAYLIST_ID) {
   try {
     const token = getStoredAccessToken();
     if (!token) {
@@ -129,6 +108,11 @@ async function fetchPlaylist(playlistId) {
     });
     
     if (!response.ok) {
+      if (response.status === 401) {
+        // Token expired, need to re-authenticate
+        localStorage.removeItem('spotify_token');
+        throw new Error('Token expired');
+      }
       throw new Error(`Error fetching playlist: ${response.status}`);
     }
     
@@ -146,6 +130,8 @@ function convertPlaylistToGameFormat(playlistData) {
     return [];
   }
   
+  console.log("Converting playlist with", playlistData.tracks.items.length, "tracks");
+  
   return playlistData.tracks.items
     .filter(item => item.track && item.track.preview_url) // Only include tracks with preview URLs
     .map(item => ({
@@ -157,55 +143,57 @@ function convertPlaylistToGameFormat(playlistData) {
     }));
 }
 
-// Initialize the connection to Spotify
-async function initializeSpotify(playlistId = PLAYLIST_ID) {
-  // If we're on the callback page with an authorization code
-  if (window.location.search.includes('code=')) {
-    const code = getAuthCodeFromUrl();
-    if (code) {
-      // Exchange the code for an access token using our backend
-      const tokenData = await exchangeCodeForToken(code);
-      if (tokenData) {
-        storeTokenData(tokenData);
-        
-        // Remove the query parameters from the URL
-        window.history.replaceState({}, document.title, window.location.pathname);
-        
-        // Now fetch the playlist
-        const playlistData = await fetchPlaylist(playlistId);
-        if (playlistData) {
-          return convertPlaylistToGameFormat(playlistData);
-        }
-      }
+// Process hash after redirect to get token
+function processRedirectIfNeeded() {
+  // Check if we have a hash fragment (for implicit grant flow)
+  if (window.location.hash.includes('access_token=')) {
+    const token = getTokenFromUrl();
+    if (token) {
+      // Get expires_in from hash params
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const expiresIn = parseInt(hashParams.get('expires_in') || '3600');
+      
+      // Store the token data
+      storeTokenData(token, expiresIn);
+      
+      // Remove the hash parameters from the URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+      
+      console.log("Successfully authenticated with Spotify!");
+      return true;
     }
-  } 
-  // If we already have a token
-  else if (isAuthenticated()) {
-    // Check if token is expired
-    const expiresTime = parseInt(localStorage.getItem('spotify_token_expires') || '0');
-    if (expiresTime > Date.now()) {
-      // Token is still valid, fetch playlist
-      const playlistData = await fetchPlaylist(playlistId);
-      if (playlistData) {
-        return convertPlaylistToGameFormat(playlistData);
-      }
-    } else {
-      // Token is expired, need to get a new one
-      // This would require implementing refresh token logic
-      // For simplicity, we'll just redirect to login again
-      redirectToSpotifyAuthorization();
-      return null;
-    }
-  }
-  // We need authentication
-  else {
-    redirectToSpotifyAuthorization();
-    return null;
   }
   
-  // If we reached here, something went wrong
-  console.error('Failed to initialize Spotify');
-  return [];
+  return false;
+}
+
+// Initialize the connection to Spotify
+async function initializeSpotify() {
+  console.log("Initializing Spotify with playlist ID:", PLAYLIST_ID);
+  
+  // First, check if we just returned from Spotify auth
+  const justAuthenticated = processRedirectIfNeeded();
+  
+  // Check if we're already authenticated
+  if (isAuthenticated() || justAuthenticated) {
+    console.log("Already authenticated, returning songs");
+    
+    try {
+      // Fetch the playlist from Spotify
+      const playlistData = await fetchPlaylist();
+      if (playlistData) {
+        const songs = convertPlaylistToGameFormat(playlistData);
+        console.log("Got songs from Spotify:", songs.length);
+        return songs;
+      }
+    } catch (error) {
+      console.error("Error fetching Spotify playlist:", error);
+    }
+  }
+  
+  // If we reached here, we need authentication or something went wrong
+  console.log("Not authenticated or failed to get playlist");
+  return null;
 }
 
 // Export the functions

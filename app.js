@@ -1,209 +1,205 @@
-// Main application logic for the Israeli Independence Day Song Quiz
-import { initializeSpotify, isAuthenticated, redirectToSpotifyAuthorization } from './spotify-auth.js';
+// Spotify Authentication Module - Using Implicit Grant Flow
+// Import Spotify credentials from config
+import { SPOTIFY_CONFIG } from './config.js';
 
-// DOM Elements
-const songPlayer = document.getElementById('song-player');
-const songTitle = document.getElementById('song-title');
-const songArtist = document.getElementById('song-artist');
-const albumCover = document.getElementById('album-cover');
-const playSegmentBtn = document.getElementById('play-segment');
-const playNextSegmentBtn = document.getElementById('play-next-segment');
-const revealSongBtn = document.getElementById('reveal-song');
-const playFullBtn = document.getElementById('play-full');
-const nextSongBtn = document.getElementById('next-song');
-const scoreElement = document.getElementById('score');
-const loginButton = document.getElementById('spotify-login');
-const spotifyStatus = document.getElementById('spotify-status');
+// Spotify credentials
+const CLIENT_ID = SPOTIFY_CONFIG.CLIENT_ID;
+const REDIRECT_URI = SPOTIFY_CONFIG.REDIRECT_URI;
+const PLAYLIST_ID = SPOTIFY_CONFIG.PLAYLIST_ID;
 
-// Game state
-let currentSongIndex = null;
-let playedSegments = 0;
-let score = 0;
-let gameSongs = [];
-let unplayedSongs = [];
+// Scopes define what your application can access
+const SCOPES = [
+  'user-read-private',
+  'user-read-email',
+  'playlist-read-private',
+  'playlist-read-collaborative'
+];
 
-// Initialize the game
-async function initializeGame() {
+// Generate a random string for the state parameter
+function generateRandomString(length) {
+  let text = '';
+  const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  
+  for (let i = 0; i < length; i++) {
+    text += possible.charAt(Math.floor(Math.random() * possible.length));
+  }
+  return text;
+}
+
+// Redirect to Spotify authorization page
+function redirectToSpotifyAuthorization() {
+  const state = generateRandomString(16);
+  localStorage.setItem('spotify_auth_state', state);
+  
+  console.log("Using Client ID:", CLIENT_ID);
+  console.log("Using Redirect URI:", REDIRECT_URI);
+  
+  // Using response_type=token for Implicit Grant Flow (no backend needed)
+  const authUrl = new URL('https://accounts.spotify.com/authorize');
+  authUrl.searchParams.append('response_type', 'token'); // Changed from 'code' to 'token'
+  authUrl.searchParams.append('client_id', CLIENT_ID);
+  authUrl.searchParams.append('scope', SCOPES.join(' '));
+  authUrl.searchParams.append('redirect_uri', REDIRECT_URI);
+  authUrl.searchParams.append('state', state);
+  
+  console.log("Redirecting to:", authUrl.toString());
+  window.location.href = authUrl.toString();
+}
+
+// Get token from URL hash after redirect from Spotify
+function getTokenFromUrl() {
+  if (!window.location.hash) {
+    return null;
+  }
+  
+  const hashParams = new URLSearchParams(window.location.hash.substring(1));
+  const token = hashParams.get('access_token');
+  const state = hashParams.get('state');
+  const storedState = localStorage.getItem('spotify_auth_state');
+  
+  if (state === null || state !== storedState) {
+    console.error('State mismatch!');
+    return null;
+  }
+  
+  localStorage.removeItem('spotify_auth_state');
+  return token;
+}
+
+// Check if user is already authenticated
+function isAuthenticated() {
+  const token = localStorage.getItem('spotify_token');
+  if (!token) return false;
+  
+  // Check if token is expired
+  const expiresTime = parseInt(localStorage.getItem('spotify_token_expires') || '0');
+  if (expiresTime > Date.now()) {
+    return true;
+  } else {
+    // Clear expired token
+    localStorage.removeItem('spotify_token');
+    return false;
+  }
+}
+
+// Store the access token and related data
+function storeTokenData(token, expiresIn) {
+  localStorage.setItem('spotify_token', token);
+  localStorage.setItem('spotify_token_expires', Date.now() + (expiresIn * 1000));
+}
+
+// Get the stored access token
+function getStoredAccessToken() {
+  return localStorage.getItem('spotify_token');
+}
+
+// Fetch a playlist from Spotify
+async function fetchPlaylist(playlistId = PLAYLIST_ID) {
   try {
-    console.log("Initializing game...");
-    
-    // Setup Spotify login button
-    if (loginButton) {
-      loginButton.addEventListener('click', handleSpotifyLogin);
+    const token = getStoredAccessToken();
+    if (!token) {
+      throw new Error('No access token available');
     }
     
-    // Check if authenticated with Spotify
-    if (isAuthenticated()) {
-      updateSpotifyStatus("מחובר לספוטיפיי");
-      try {
-        // Get songs from Spotify (or simulated data)
-        console.log("Getting songs from Spotify...");
-        const spotifySongs = await initializeSpotify();
-        
-        if (spotifySongs && spotifySongs.length > 0) {
-          console.log("Got songs from Spotify:", spotifySongs.length);
-          gameSongs = spotifySongs;
-        } else {
-          console.log("No songs from Spotify, using default songs");
-          gameSongs = songs; // Fallback to local songs
-        }
-      } catch (error) {
-        console.error("Error getting Spotify songs:", error);
-        gameSongs = songs; // Fallback to local songs
+    const response = await fetch(`https://api.spotify.com/v1/playlists/${playlistId}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
       }
-    } else {
-      console.log("Not authenticated with Spotify, using default songs");
-      gameSongs = songs;
-      updateSpotifyStatus("לא מחובר לספוטיפיי");
+    });
+    
+    if (!response.ok) {
+      if (response.status === 401) {
+        // Token expired, need to re-authenticate
+        localStorage.removeItem('spotify_token');
+        throw new Error('Token expired');
+      }
+      throw new Error(`Error fetching playlist: ${response.status}`);
     }
     
-    // Initialize game with songs
-    unplayedSongs = [...gameSongs];
-    resetGameState();
-    selectNextSong();
-    
-    console.log("Game initialized with", gameSongs.length, "songs");
+    const data = await response.json();
+    return data;
   } catch (error) {
-    console.error("Error in game initialization:", error);
-    // Fallback to local songs in case of any error
-    gameSongs = songs;
-    unplayedSongs = [...songs];
-    resetGameState();
-    selectNextSong();
+    console.error('Failed to fetch playlist:', error);
+    return null;
   }
 }
 
-// Handle Spotify login button click
-function handleSpotifyLogin() {
-  console.log("Spotify login button clicked");
-  redirectToSpotifyAuthorization();
-}
-
-// Update Spotify status display
-function updateSpotifyStatus(message) {
-  if (spotifyStatus) {
-    spotifyStatus.textContent = message;
-  }
-}
-
-// Reset the game state
-function resetGameState() {
-  playedSegments = 0;
-  songTitle.classList.add('hidden');
-  if (songArtist) songArtist.classList.add('hidden');
-  if (albumCover) albumCover.classList.add('hidden');
-  songPlayer.pause();
-  songPlayer.currentTime = 0;
-}
-
-// Select a random song that hasn't been played yet
-function selectNextSong() {
-  if (unplayedSongs.length === 0) {
-    // All songs have been played, reset the list
-    unplayedSongs = [...gameSongs].map(song => ({...song, played: false}));
+// Convert Spotify playlist to our game format
+function convertPlaylistToGameFormat(playlistData) {
+  if (!playlistData || !playlistData.tracks || !playlistData.tracks.items) {
+    return [];
   }
   
-  // Select a random unplayed song
-  const randomIndex = Math.floor(Math.random() * unplayedSongs.length);
-  const selectedSong = unplayedSongs[randomIndex];
+  console.log("Converting playlist with", playlistData.tracks.items.length, "tracks");
   
-  // Remove the selected song from unplayed songs
-  unplayedSongs.splice(randomIndex, 1);
-  
-  // Update current song
-  currentSongIndex = gameSongs.findIndex(song => song.title === selectedSong.title);
-  songPlayer.src = gameSongs[currentSongIndex].path;
-  
-  // Update album cover if available
-  if (albumCover && gameSongs[currentSongIndex].albumCover) {
-    albumCover.src = gameSongs[currentSongIndex].albumCover;
-    albumCover.classList.add('hidden'); // Keep hidden until revealed
+  return playlistData.tracks.items
+    .filter(item => item.track && item.track.preview_url) // Only include tracks with preview URLs
+    .map(item => ({
+      title: item.track.name,
+      artist: item.track.artists.map(artist => artist.name).join(', '),
+      path: item.track.preview_url, // Spotify provides 30-second previews
+      played: false,
+      albumCover: item.track.album.images[0]?.url || null
+    }));
+}
+
+// Process hash after redirect to get token
+function processRedirectIfNeeded() {
+  // Check if we have a hash fragment (for implicit grant flow)
+  if (window.location.hash.includes('access_token=')) {
+    const token = getTokenFromUrl();
+    if (token) {
+      // Get expires_in from hash params
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const expiresIn = parseInt(hashParams.get('expires_in') || '3600');
+      
+      // Store the token data
+      storeTokenData(token, expiresIn);
+      
+      // Remove the hash parameters from the URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+      
+      console.log("Successfully authenticated with Spotify!");
+      return true;
+    }
   }
   
-  return selectedSong;
+  return false;
 }
 
-// Play initial segment (first 2 seconds)
-function playInitialSegment() {
-  resetPlayback();
-  playedSegments = 1;
-  playSegment(0, 2);
-}
-
-// Play next segment (additional 1 second)
-function playNextSegment() {
-  if (playedSegments === 0) {
-    playInitialSegment();
-    return;
+// Initialize the connection to Spotify
+async function initializeSpotify() {
+  console.log("Initializing Spotify with playlist ID:", PLAYLIST_ID);
+  
+  // First, check if we just returned from Spotify auth
+  const justAuthenticated = processRedirectIfNeeded();
+  
+  // Check if we're already authenticated
+  if (isAuthenticated() || justAuthenticated) {
+    console.log("Already authenticated, returning songs");
+    
+    try {
+      // Fetch the playlist from Spotify
+      const playlistData = await fetchPlaylist();
+      if (playlistData) {
+        const songs = convertPlaylistToGameFormat(playlistData);
+        console.log("Got songs from Spotify:", songs.length);
+        return songs;
+      }
+    } catch (error) {
+      console.error("Error fetching Spotify playlist:", error);
+    }
   }
   
-  const startTime = playedSegments + 1;
-  playedSegments++;
-  playSegment(startTime, startTime + 1);
+  // If we reached here, we need authentication or something went wrong
+  console.log("Not authenticated or failed to get playlist");
+  return null;
 }
 
-// Play a specific segment of the current song
-function playSegment(startTime, endTime) {
-  songPlayer.currentTime = startTime;
-  
-  const playPromise = songPlayer.play();
-  
-  if (playPromise !== undefined) {
-    playPromise.then(() => {
-      // Set timeout to pause after segment duration
-      setTimeout(() => {
-        songPlayer.pause();
-      }, (endTime - startTime) * 1000);
-    }).catch(error => {
-      console.error('Playback error:', error);
-    });
-  }
-}
-
-// Reveal the current song title
-function revealSong() {
-  songTitle.textContent = gameSongs[currentSongIndex].title;
-  songTitle.classList.remove('hidden');
-  
-  // Show artist if available
-  if (songArtist && gameSongs[currentSongIndex].artist) {
-    songArtist.textContent = gameSongs[currentSongIndex].artist;
-    songArtist.classList.remove('hidden');
-  }
-  
-  // Show album cover if available
-  if (albumCover && gameSongs[currentSongIndex].albumCover) {
-    albumCover.classList.remove('hidden');
-  }
-}
-
-// Play the full song
-function playFullSong() {
-  songPlayer.currentTime = 0;
-  songPlayer.play();
-  revealSong();
-}
-
-// Move to the next song
-function moveToNextSong() {
-  score++;
-  scoreElement.textContent = score;
-  resetGameState();
-  selectNextSong();
-}
-
-// Reset playback helper function
-function resetPlayback() {
-  songPlayer.pause();
-  songPlayer.currentTime = 0;
-}
-
-// Event listeners
-playSegmentBtn.addEventListener('click', playInitialSegment);
-playNextSegmentBtn.addEventListener('click', playNextSegment);
-revealSongBtn.addEventListener('click', revealSong);
-playFullBtn.addEventListener('click', playFullSong);
-nextSongBtn.addEventListener('click', moveToNextSong);
-
-// Initialize the game when page loads
-window.addEventListener('DOMContentLoaded', initializeGame);
+// Export the functions
+export {
+  initializeSpotify,
+  isAuthenticated,
+  redirectToSpotifyAuthorization,
+  fetchPlaylist
+};
